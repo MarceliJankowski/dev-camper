@@ -1,0 +1,18 @@
+version: "3.8"
+services:
+  backend:
+    stop_grace_period: 1m # how much time docker gives container for shutting down with SIGINT and SIGTERM signals before it force kills it
+    container_name: backend
+    build:
+      target: ${BACKEND_TARGET}
+      context: ./
+      dockerfile: Dockerfile
+    env_file: 
+     - ./env/backend.env
+    environment:
+      # pass env variables from: '.env' docker-compose config file to the container
+      - PORT=${BACKEND_PORT}
+    ports:
+      - ${BACKEND_PORT}:${BACKEND_PORT}
+    volumes:
+      - ./:/usr/src/app:ro

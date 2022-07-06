@@ -9,10 +9,14 @@ process.on("uncaughtException", (err: Error) => {
 
 // PROJECT_MODULES
 import app from "./app";
-import { logErr } from "./utils";
+import { logErr, getEnvVar } from "./utils";
 
-const server = app.listen(5000, () => {
+const PORT = getEnvVar("PORT");
+
+const server = app.listen(PORT, () => {
   console.log("Server is up and running");
+  console.log(`NODE_ENV: ${getEnvVar("NODE_ENV")}`);
+  console.log(`PORT: ${PORT}`);
 });
 
 // EVENT LISTENERS

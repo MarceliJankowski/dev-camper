@@ -15,4 +15,5 @@ services:
     ports:
       - ${BACKEND_PORT}:${BACKEND_PORT}
     volumes:
+      - /usr/src/app/node_modules
       - ./:/usr/src/app:ro

@@ -1,0 +1,13 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+# build and run the server
+docker-compose up --build -d 1> /dev/null
+
+LAST_LOG_LINE=$(docker-compose logs backend | tail -n1)
+
+# based on the LAST_LOG_LINE determine whether server is up and running (in case it's not grep will exit with non 0 exit-code)
+echo "$LAST_LOG_LINE" | grep -v '\[nodemon\] app crashed' 1> /dev/null
+
+# run all the tests
+docker-compose exec backend npm test 1> /dev/null

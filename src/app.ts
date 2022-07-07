@@ -6,6 +6,7 @@ import morgan from "morgan";
 import { bootcampRouter } from "./routes";
 import { BOOTCAMPS_URL } from "./constants";
 import { getEnvVar } from "./utils";
+import { globalErrorHandler } from "./middlewares";
 
 const app = express();
 export default app;
@@ -18,3 +19,6 @@ if (NODE_ENV === "development") app.use(morgan("dev"));
 
 // MOUNT ROUTERS
 app.use(BOOTCAMPS_URL, bootcampRouter);
+
+// MOUNT globalErrorHandler MIDDLEWARE
+app.use(globalErrorHandler);

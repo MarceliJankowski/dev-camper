@@ -2,9 +2,9 @@
 import express from "express";
 
 // PROJECT_MODULES
-import { getBootcamps } from "../controllers/bootcampControllers";
+import { getBootcamps, createBootcamp } from "../controllers/bootcampControllers";
 
 const router = express.Router();
 export default router;
 
-router.route("/").get(getBootcamps);
+router.route("/").get(getBootcamps).post(createBootcamp);

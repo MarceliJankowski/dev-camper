@@ -5,7 +5,7 @@ import { describe, vi, it, afterEach, expect } from "vitest";
 import request from "supertest";
 
 // PROJECT_MODULES
-import { BootcampType } from "../models/bootcampModel";
+import Bootcamp, { BootcampType } from "../models/bootcampModel";
 import { BOOTCAMPS_URL } from "../constants";
 import app from "../app";
 
@@ -23,6 +23,7 @@ afterEach(() => {
 vi.mock("../models/bootcampModel", () => ({
   default: {
     find: vi.fn(() => Promise.resolve(BOOTCAMPS_MOCK)),
+    create: vi.fn((bootcamp: object) => Promise.resolve(bootcamp)),
   },
 }));
 
@@ -62,6 +63,32 @@ describe(BOOTCAMPS_URL, () => {
       } = await request(app).get(BOOTCAMPS_URL).expect(200).expect("Content-Type", /json/);
 
       expect(bootcamps).toBe(expectedBootcampsValue);
+    });
+  });
+
+  describe("POST", () => {
+    const inputReqBody = BOOTCAMPS_MOCK[0];
+
+    it("responds with expected headers && body", async () => {
+      const expectedResBody = {
+        status: "success",
+        message: "bootcamp was successfully created",
+        bootcamp: inputReqBody,
+      };
+
+      const { body } = await request(app)
+        .post(BOOTCAMPS_URL)
+        .send(inputReqBody)
+        .expect(201)
+        .expect("Content-Type", /json/);
+
+      expect(body).toEqual(expectedResBody);
+    });
+
+    it("invokes Bootcamp.create method with req.body as argument", async () => {
+      await request(app).post(BOOTCAMPS_URL).send(inputReqBody);
+
+      expect(Bootcamp.create).toBeCalledWith(inputReqBody);
     });
   });
 });

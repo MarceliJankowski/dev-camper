@@ -16,3 +16,15 @@ export const getBootcamps = catchPromiseRej(async ({ query }, res) => {
     bootcamps,
   });
 });
+
+/**@route POST $API_V1/bootcamps
+@access private*/
+export const createBootcamp = catchPromiseRej(async (req, res) => {
+  const bootcamp = await Bootcamp.create(req.body);
+
+  res.status(201).json({
+    status: "success",
+    message: "bootcamp was successfully created",
+    bootcamp,
+  });
+});

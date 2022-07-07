@@ -17,3 +17,23 @@ services:
     volumes:
       - /usr/src/app/node_modules
       - ./:/usr/src/app:ro
+    depends_on:
+      database:
+        condition: service_healthy
+  database:
+    container_name: database
+    restart: always # automatically restart container after it crashes
+    image: mongo:5.0.8
+    volumes:
+      - data:/data/db
+    env_file:
+      - ./env/mongo.env
+    ports:
+      - ${DATABASE_PORT}:27017
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongo localhost:27017/test --quiet
+      interval: 5s
+      retries: 3
+      start_period: 3s
+volumes:
+  data:

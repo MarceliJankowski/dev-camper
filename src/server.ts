@@ -7,6 +7,9 @@ process.on("uncaughtException", (err: Error) => {
   process.exit(1);
 });
 
+// PACKAGES
+import mongoose from "mongoose";
+
 // PROJECT_MODULES
 import app from "./app";
 import { logErr, getEnvVar } from "./utils";
@@ -18,6 +21,20 @@ const server = app.listen(PORT, () => {
   console.log(`NODE_ENV: ${getEnvVar("NODE_ENV")}`);
   console.log(`PORT: ${PORT}`);
 });
+
+const MONGO_PASSWORD = getEnvVar("MONGO_PASSWORD");
+const MONGO_USERNAME = getEnvVar("MONGO_USERNAME");
+const MONGO_URL = getEnvVar("MONGO_URL")
+  .replace(/<PASSWORD>/, MONGO_PASSWORD)
+  .replace(/<USERNAME>/, MONGO_USERNAME);
+
+mongoose
+  .connect(MONGO_URL)
+  .then(() => console.log("Server is connected with the mongodb database (:"))
+  .catch(err => {
+    logErr("server didn't manage to connect with mongodb database ):", err);
+    process.exit(3);
+  });
 
 // EVENT LISTENERS
 

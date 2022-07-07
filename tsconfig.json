@@ -1,4 +1,7 @@
 {
+  /* fixes the problem where ts-node wasn't able to find .d.ts files */
+  "ts-node": { "files": true },
+
   "compilerOptions": {
     /* Visit https://aka.ms/tsconfig.json to read more about this file */
 

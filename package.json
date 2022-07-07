@@ -7,7 +7,8 @@
     "dev": "nodemon ./src/server.ts",
     "test": "vitest --reporter verbose --run",
     "test:w": "vitest --reporter verbose",
-    "prepare": "husky install"
+    "prepare": "husky install",
+    "compile": "tsc"
   },
   "repository": {
     "type": "git",

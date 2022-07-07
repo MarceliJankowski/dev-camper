@@ -1,6 +1,6 @@
 // PROJECT_MODULES
 import Bootcamp from "../models/bootcampModel";
-import { catchPromiseRej, ApiFeatures } from "../utils";
+import { catchPromiseRej, ApiFeatures, IntentionalError } from "../utils";
 
 /**@route GET $API_V1/bootcamps
 @access public*/
@@ -26,5 +26,22 @@ export const createBootcamp = catchPromiseRej(async (req, res) => {
     status: "success",
     message: "bootcamp was successfully created",
     bootcamp,
+  });
+});
+
+/**@route PATCH $API_V1/bootcamps/:id
+@access private*/
+export const updateBootcamp = catchPromiseRej(async ({ params: { id }, body }, res) => {
+  const updatedBootcamp = await Bootcamp.findByIdAndUpdate(id, body, {
+    new: true,
+    runValidators: true,
+  });
+
+  if (!updatedBootcamp) throw new IntentionalError(`bootcamp with id: ${id} does not exist`, 404);
+
+  res.status(200).json({
+    status: "success",
+    message: `successfully updated bootcamp with id: ${id}`,
+    updatedBootcamp,
   });
 });

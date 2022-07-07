@@ -39,6 +39,14 @@ vi.mock("../models/bootcampModel", () => ({
           config.new === true ? resolve(updatedBootcamp) : resolve(bootcamp);
         })
     ),
+    findById: vi.fn(
+      (bootcampId: string) =>
+        new Promise((resolve, _reject) => {
+          const bootcamp = BOOTCAMPS_MOCK.find(bootcamp => (bootcamp._id as any) === bootcampId);
+
+          bootcamp ? resolve(bootcamp) : resolve(null);
+        })
+    ),
   },
 }));
 
@@ -153,6 +161,48 @@ describe(`${BOOTCAMPS_URL}/:id`, () => {
       process.env.NODE_ENV = "production";
       const { body } = await request(app)
         .patch(`${BOOTCAMPS_URL}/${bootcampIdWithoutMatch}`)
+        .expect(404)
+        .expect("Content-Type", /json/);
+
+      expect(body).toEqual(expectedResBody);
+    });
+  });
+
+  describe("GET", () => {
+    it("invokes Bootcamp.findById method with id param as argument", async () => {
+      const testId = "test-id";
+
+      await request(app).get(`${BOOTCAMPS_URL}/${testId}`);
+
+      expect(Bootcamp.findById).toBeCalledWith(testId);
+    });
+
+    test("when id-param has a bootcamp match, it responds with expected headers && body", async () => {
+      const inputBootcampIdWithMatch = BOOTCAMPS_MOCK[0]._id;
+      const expectedResBody = {
+        status: "success",
+        message: `successfully fetched bootcamp with id: ${inputBootcampIdWithMatch}`,
+        bootcamp: BOOTCAMPS_MOCK.find(({ _id }) => _id === inputBootcampIdWithMatch),
+      };
+
+      const { body } = await request(app)
+        .get(`${BOOTCAMPS_URL}/${inputBootcampIdWithMatch}`)
+        .expect(200)
+        .expect("Content-Type", /json/);
+
+      expect(body).toEqual(expectedResBody);
+    });
+
+    it("handles case when there's no bootcamp match for id param (in production)", async () => {
+      const bootcampIdWithoutMatch = "1234567890";
+      const expectedResBody = {
+        status: "fail",
+        message: `bootcamp with id: ${bootcampIdWithoutMatch} does not exist`,
+      };
+
+      process.env.NODE_ENV = "production";
+      const { body } = await request(app)
+        .get(`${BOOTCAMPS_URL}/${bootcampIdWithoutMatch}`)
         .expect(404)
         .expect("Content-Type", /json/);
 

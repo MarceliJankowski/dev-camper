@@ -45,3 +45,15 @@ export const updateBootcamp = catchPromiseRej(async ({ params: { id }, body }, r
     updatedBootcamp,
   });
 });
+
+/**@route GET $API_V1/bootcamps/:id
+@access public*/
+export const getBootcamp = catchPromiseRej(async ({ params: { id } }, res) => {
+  const bootcamp = await Bootcamp.findById(id);
+
+  if (!bootcamp) throw new IntentionalError(`bootcamp with id: ${id} does not exist`, 404);
+
+  res
+    .status(200)
+    .json({ status: "success", message: `successfully fetched bootcamp with id: ${id}`, bootcamp });
+});

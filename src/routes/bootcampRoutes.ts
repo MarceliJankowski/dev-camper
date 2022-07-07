@@ -7,6 +7,7 @@ import {
   createBootcamp,
   updateBootcamp,
   getBootcamp,
+  deleteBootcamp,
 } from "../controllers/bootcampControllers";
 
 const router = express.Router();
@@ -14,4 +15,4 @@ export default router;
 
 // END-POINTS
 router.route("/").get(getBootcamps).post(createBootcamp);
-router.route("/:id").patch(updateBootcamp).get(getBootcamp);
+router.route("/:id").patch(updateBootcamp).get(getBootcamp).delete(deleteBootcamp);

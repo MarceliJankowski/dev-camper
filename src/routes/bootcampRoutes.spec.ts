@@ -47,6 +47,14 @@ vi.mock("../models/bootcampModel", () => ({
           bootcamp ? resolve(bootcamp) : resolve(null);
         })
     ),
+    findByIdAndDelete: vi.fn(
+      (bootcampId: string) =>
+        new Promise((resolve, _reject) => {
+          const bootcamp = BOOTCAMPS_MOCK.find(({ _id }) => (_id as any) === bootcampId);
+
+          bootcamp ? resolve(bootcamp) : resolve(undefined);
+        })
+    ),
   },
 }));
 
@@ -170,11 +178,11 @@ describe(`${BOOTCAMPS_URL}/:id`, () => {
 
   describe("GET", () => {
     it("invokes Bootcamp.findById method with id param as argument", async () => {
-      const testId = "test-id";
+      const inputId = "input-id";
 
-      await request(app).get(`${BOOTCAMPS_URL}/${testId}`);
+      await request(app).get(`${BOOTCAMPS_URL}/${inputId}`);
 
-      expect(Bootcamp.findById).toBeCalledWith(testId);
+      expect(Bootcamp.findById).toBeCalledWith(inputId);
     });
 
     test("when id-param has a bootcamp match, it responds with expected headers && body", async () => {
@@ -203,6 +211,38 @@ describe(`${BOOTCAMPS_URL}/:id`, () => {
       process.env.NODE_ENV = "production";
       const { body } = await request(app)
         .get(`${BOOTCAMPS_URL}/${bootcampIdWithoutMatch}`)
+        .expect(404)
+        .expect("Content-Type", /json/);
+
+      expect(body).toEqual(expectedResBody);
+    });
+  });
+
+  describe("DELETE", () => {
+    it("invokes Bootcamp.findByIdAndDelete method with id param", async () => {
+      const inputId = "input-id";
+
+      await request(app).delete(`${BOOTCAMPS_URL}/${inputId}`);
+
+      expect(Bootcamp.findByIdAndDelete).toBeCalledWith(inputId);
+    });
+
+    test("when id-param has a bootcamp match it responds with 204 status code", async () => {
+      const inputBootcampId = BOOTCAMPS_MOCK[0]._id;
+
+      await request(app).delete(`${BOOTCAMPS_URL}/${inputBootcampId}`).expect(204);
+    });
+
+    it("handles case when there's no bootcamp match for id param (in production)", async () => {
+      const bootcampIdWithoutMatch = "1234567890";
+      const expectedResBody = {
+        status: "fail",
+        message: `bootcamp with id: ${bootcampIdWithoutMatch} does not exist`,
+      };
+
+      process.env.NODE_ENV = "production";
+      const { body } = await request(app)
+        .delete(`${BOOTCAMPS_URL}/${bootcampIdWithoutMatch}`)
         .expect(404)
         .expect("Content-Type", /json/);
 

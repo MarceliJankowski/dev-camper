@@ -57,3 +57,13 @@ export const getBootcamp = catchPromiseRej(async ({ params: { id } }, res) => {
     .status(200)
     .json({ status: "success", message: `successfully fetched bootcamp with id: ${id}`, bootcamp });
 });
+
+/**@route DELETE $API_V1/bootcamps/:id
+@access private*/
+export const deleteBootcamp = catchPromiseRej(async ({ params: { id } }, res) => {
+  const deletedBootcamp = await Bootcamp.findByIdAndDelete(id);
+
+  if (!deletedBootcamp) throw new IntentionalError(`bootcamp with id: ${id} does not exist`, 404);
+
+  res.status(204).send();
+});

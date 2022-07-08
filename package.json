@@ -8,7 +8,11 @@
     "test": "vitest --reporter verbose --run",
     "test:w": "vitest --reporter verbose",
     "prepare": "husky install",
-    "compile": "tsc"
+    "compile": "tsc",
+    "seed:h": "ts-node ./seeder.ts -h",
+    "seed:i": "ts-node ./seeder.ts -i",
+    "seed:d": "ts-node ./seeder.ts -d",
+    "seed:di": "ts-node ./seeder.ts -d -i"
   },
   "repository": {
     "type": "git",

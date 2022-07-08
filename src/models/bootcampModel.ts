@@ -3,6 +3,9 @@ import mongoose from "mongoose";
 import validator from "validator";
 import slugify from "slugify";
 
+// PROJECT_MODULES
+import { geocoder, IntentionalError } from "../utils";
+
 enum Careers {
   WEB_DEV = "Web Development",
   MOBILE_DEV = "Mobile Development",
@@ -178,6 +181,43 @@ const bootcampSchema = new mongoose.Schema<BootcampType>(
 // generate slug from document name
 bootcampSchema.pre("save", function (this: BootcampType, next) {
   this.slug = slugify(this.name, { lower: true });
+  next();
+});
+
+// parse address into location data and delete address field
+bootcampSchema.pre("save", async function (this: BootcampType, next) {
+  const [{ longitude, latitude, formattedAddress, streetName, city, stateCode, zipcode, countryCode }] =
+    await geocoder.geocode(this.address as string);
+
+  if (
+    !formattedAddress ||
+    !latitude ||
+    !longitude ||
+    !streetName ||
+    !city ||
+    !stateCode ||
+    !zipcode ||
+    !countryCode
+  ) {
+    next(new IntentionalError(`couldn't parse address: ${this.address}`, 400));
+    return;
+  }
+
+  // save location into database
+  this.location = {
+    type: "Point",
+    coordinates: [longitude, latitude],
+    street: streetName,
+    state: stateCode,
+    country: countryCode,
+    formattedAddress,
+    zipcode,
+    city,
+  };
+
+  // don't persist address to the database because after parsing it, it's redundant
+  this.address = undefined;
+
   next();
 });
 

@@ -6,20 +6,28 @@ import request from "supertest";
 
 // PROJECT_MODULES
 import Bootcamp, { BootcampType } from "../models/bootcampModel";
+import { CourseType } from "../models/courseModel";
 import { BOOTCAMPS_URL } from "../constants";
 import app from "../app";
 import { getEnvVar } from "../utils";
 
 // Testing individual end-points instead of controllers
 
-const BOOTCAMPS_MOCK_PATH = path.join(__dirname, "../../mock_data/bootcamps.json");
-const BOOTCAMPS_MOCK: BootcampType[] = JSON.parse(fs.readFileSync(BOOTCAMPS_MOCK_PATH, "utf-8"));
+// HOOKS
 
 afterEach(() => {
   process.env.NODE_ENV = "development";
 
   vi.clearAllMocks();
 });
+
+// MOCKS
+
+const BOOTCAMPS_MOCK_PATH = path.join(__dirname, "../../mock_data/bootcamps.json");
+const BOOTCAMPS_MOCK: BootcampType[] = JSON.parse(fs.readFileSync(BOOTCAMPS_MOCK_PATH, "utf-8"));
+
+const COURSES_MOCK_PATH = path.join(__dirname, "../../mock_data/courses.json");
+const COURSES_MOCK: CourseType[] = JSON.parse(fs.readFileSync(COURSES_MOCK_PATH, "utf-8"));
 
 vi.mock("../models/bootcampModel", () => ({
   default: {
@@ -59,25 +67,42 @@ vi.mock("../models/bootcampModel", () => ({
   },
 }));
 
-const allFeaturesSpy = vi.fn();
+const populateSpy = vi.fn(() => getBootcampsPopulatedWithCourses());
 
 vi.mock("../utils/apiFeatures", () => ({
   default: class {
     allFeatures() {
-      return allFeaturesSpy();
+      return {
+        populate: populateSpy,
+      };
     }
   },
 }));
 
+// HELPER FUNCTIONS
+
+function getBootcampsPopulatedWithCourses() {
+  // O(n^2) quadratic time complexity so be careful with sample size
+  const bootcamps = BOOTCAMPS_MOCK.map(bootcamp => {
+    const courses = COURSES_MOCK.filter(course => bootcamp._id === course.bootcamp);
+
+    return { ...bootcamp, courses };
+  });
+
+  return bootcamps;
+}
+
+// TESTS
+
 describe(BOOTCAMPS_URL, () => {
   describe("GET", () => {
-    it("fetches all bootcamps / responds with expected headers && body", async () => {
-      allFeaturesSpy.mockImplementationOnce(() => Promise.resolve(BOOTCAMPS_MOCK));
+    it("responds with expected headers && body", async () => {
+      const expectedBootcamps = getBootcampsPopulatedWithCourses();
       const expectedResBody = {
         status: "success",
         message: "successfully fetched bootcamps",
-        count: BOOTCAMPS_MOCK.length,
-        bootcamps: BOOTCAMPS_MOCK,
+        count: expectedBootcamps.length,
+        bootcamps: expectedBootcamps,
       };
 
       const { body } = await request(app).get(BOOTCAMPS_URL).expect(200).expect("Content-Type", /json/);
@@ -85,10 +110,18 @@ describe(BOOTCAMPS_URL, () => {
       expect(body).toEqual(expectedResBody);
     });
 
-    it("responds with bootcamps comming from: 'new ApiFeatuers.allFeatures()' (ensuring it's implementing all API features)", async () => {
+    it("invokes: 'new ApiFeatures().allFeatures().populate()' with expected arguments (ensuring it's populating bootcamps with courses)", async () => {
+      const expectedPopulateArg = "courses";
+
+      await request(app).get(BOOTCAMPS_URL);
+
+      expect(populateSpy).toBeCalledWith(expectedPopulateArg);
+    });
+
+    it("responds with bootcamps comming from: 'new ApiFeatuers.allFeatures().populate()' (ensuring it's implementing all API features)", async () => {
       // ensure bootcamps are comming from allFeatures() by checking whether end-point responds with "test value" as bootcamps
       const expectedBootcampsValue = "test value";
-      allFeaturesSpy.mockImplementationOnce(() => Promise.resolve(expectedBootcampsValue));
+      (populateSpy as any).mockImplementationOnce(() => Promise.resolve(expectedBootcampsValue));
 
       const {
         body: { bootcamps },

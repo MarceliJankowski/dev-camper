@@ -6,7 +6,7 @@ import { catchPromiseRej, ApiFeatures, IntentionalError, geocoder, getEnvVar } f
 @access public*/
 export const getBootcamps = catchPromiseRej(async ({ query }, res) => {
   const bootcampCursor = Bootcamp.find();
-  const bootcamps = await new ApiFeatures(bootcampCursor, query).allFeatures();
+  const bootcamps = await new ApiFeatures(bootcampCursor, query).allFeatures().populate("courses");
   const bootcampsCount = bootcamps.length;
 
   res.status(200).json({

@@ -4,6 +4,7 @@ import mongoose from "mongoose";
 
 // PROJECT_MODULES
 import Bootcamp from "./src/models/bootcampModel";
+import Course from "./src/models/courseModel";
 import { getEnvVar } from "./src/utils";
 
 const MONGO_PASSWORD = getEnvVar("MONGO_PASSWORD");
@@ -47,12 +48,16 @@ const SCRIPT_NAME = process.argv[1].split("/").at(-1)!.replace(/\..*$/, "");
 
 async function deleteData() {
   await Bootcamp.deleteMany().catch(err => handleErr(err, 3));
+  await Course.deleteMany().catch(err => handleErr(err, 3));
 
   console.log(`${SCRIPT_NAME} successfully deleted all documents`);
 }
 
 async function importData() {
   const bootcamps = JSON.parse(fs.readFileSync(`${__dirname}/mock_data/bootcamps.json`, "utf-8"));
+  const courses = JSON.parse(fs.readFileSync(`${__dirname}/mock_data/courses.json`, "utf-8"));
+
+  await Course.create(courses).catch(err => handleErr(err, 3));
 
   // create one bootcamp at the time because of geocode middleware (free provider limits quantity of requests per second)
   for (const bootcamp of bootcamps) await Bootcamp.create(bootcamp).catch(err => handleErr(err, 3));

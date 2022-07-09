@@ -178,6 +178,16 @@ const bootcampSchema = new mongoose.Schema<BootcampType>(
   }
 );
 
+// VIRTUALS
+
+bootcampSchema.virtual("courses", {
+  ref: "Course",
+  localField: "_id",
+  foreignField: "bootcamp",
+});
+
+// MIDDLEWARES
+
 // generate slug from document name
 bootcampSchema.pre("save", function (this: BootcampType, next) {
   this.slug = slugify(this.name, { lower: true });

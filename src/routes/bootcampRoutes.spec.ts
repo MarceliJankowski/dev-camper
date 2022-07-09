@@ -8,6 +8,7 @@ import request from "supertest";
 import Bootcamp, { BootcampType } from "../models/bootcampModel";
 import { BOOTCAMPS_URL } from "../constants";
 import app from "../app";
+import { getEnvVar } from "../utils";
 
 // Testing individual end-points instead of controllers
 
@@ -248,5 +249,78 @@ describe(`${BOOTCAMPS_URL}/:id`, () => {
 
       expect(body).toEqual(expectedResBody);
     });
+  });
+});
+
+const geocodeSpy = vi.fn(() => Promise.resolve([{ longitude: 1, latitude: 1 }]));
+
+vi.mock("../utils/geocoder", () => ({
+  default: {
+    geocode: () => geocodeSpy(),
+  },
+}));
+
+describe(`GET ${BOOTCAMPS_URL}/radius/:zipcode/:distance`, () => {
+  // thanks to this test later down the line I can mock away the find method (without implementing the actual logic...) because I already tested that it get's inovoked with expected arguments
+  it("invokes Bootcamp.find method with expected arguments", async () => {
+    const inputZipcode = "02118";
+    const inputDistance = 10;
+    const radius = inputDistance / Number(getEnvVar("EARTH_RADIUS_KM"));
+
+    const testLongitude = 5;
+    const testLatitude = 5;
+    geocodeSpy.mockImplementationOnce(() =>
+      Promise.resolve([{ longitude: testLongitude, latitude: testLatitude }])
+    );
+
+    const expectedFindArg = {
+      location: { $geoWithin: { $centerSphere: [[testLongitude, testLatitude], radius] } },
+    };
+
+    await request(app).get(`${BOOTCAMPS_URL}/radius/${inputZipcode}/${inputDistance}`);
+
+    expect(Bootcamp.find).toBeCalledWith(expectedFindArg);
+  });
+
+  it("when there are bootcamps within radius, responds with expected headers && body", async () => {
+    const inputZipcode = "02118";
+    const inputDistanceKm = 100;
+    // list of random bootcamps for faking bootcampsWithinRadius
+    const testBootcampsWithinRadius = new Array(BOOTCAMPS_MOCK[0], BOOTCAMPS_MOCK[1], BOOTCAMPS_MOCK[2]);
+
+    const expectedResBody = {
+      status: "success",
+      count: testBootcampsWithinRadius.length,
+      bootcamps: testBootcampsWithinRadius,
+    };
+
+    (Bootcamp.find as any).mockImplementationOnce(() => Promise.resolve(testBootcampsWithinRadius));
+
+    const { body } = await request(app)
+      .get(`${BOOTCAMPS_URL}/radius/${inputZipcode}/${inputDistanceKm}`)
+      .expect(200)
+      .expect("Content-Type", /json/);
+
+    expect(body).toEqual(expectedResBody);
+  });
+
+  it("when there are no bootcamps within radius, responds with generic success body", async () => {
+    const inputZipcode = "02118";
+    const inputDistanceKm = 15;
+    const expectedResBody = {
+      status: "success",
+      count: 0,
+      bootcamps: [],
+    };
+
+    // simulate situation where there's no bootcamps within radius
+    (Bootcamp.find as any).mockImplementationOnce(() => Promise.resolve([]));
+
+    const { body } = await request(app)
+      .get(`${BOOTCAMPS_URL}/radius/${inputZipcode}/${inputDistanceKm}`)
+      .expect(200)
+      .expect("Content-Type", /json/);
+
+    expect(body).toEqual(expectedResBody);
   });
 });

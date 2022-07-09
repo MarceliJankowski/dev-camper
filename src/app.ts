@@ -3,8 +3,8 @@ import express from "express";
 import morgan from "morgan";
 
 // PROJECT_MODULES
-import { bootcampRouter } from "./routes";
-import { BOOTCAMPS_URL } from "./constants";
+import { bootcampRouter, courseRouter } from "./routes";
+import { BOOTCAMPS_URL, COURSES_URL } from "./constants";
 import { getEnvVar, IntentionalError } from "./utils";
 import { globalErrorHandler } from "./middlewares";
 
@@ -19,6 +19,7 @@ if (NODE_ENV === "development") app.use(morgan("dev"));
 
 // MOUNT ROUTERS
 app.use(BOOTCAMPS_URL, bootcampRouter);
+app.use(COURSES_URL, courseRouter);
 
 // HANDLE INVALID END-POINTS
 app.all("*", (req, _res, next) =>

@@ -1,7 +1,7 @@
 // PACKAGES
 import fs from "fs";
 import path from "path";
-import { describe, vi, it, afterEach, expect, test } from "vitest";
+import { describe, vi, it, afterEach, expect, test, beforeAll } from "vitest";
 import request from "supertest";
 
 // PROJECT_MODULES
@@ -13,6 +13,14 @@ import { getEnvVar } from "../utils";
 
 // Testing individual end-points instead of controllers
 
+// MOCK DATA
+
+const BOOTCAMPS_MOCK_PATH = path.join(__dirname, "../../mock_data/bootcamps.json");
+const BOOTCAMPS_MOCK: BootcampType[] = JSON.parse(fs.readFileSync(BOOTCAMPS_MOCK_PATH, "utf-8"));
+
+const COURSES_MOCK_PATH = path.join(__dirname, "../../mock_data/courses.json");
+const COURSES_MOCK: CourseType[] = JSON.parse(fs.readFileSync(COURSES_MOCK_PATH, "utf-8"));
+
 // HOOKS
 
 afterEach(() => {
@@ -21,13 +29,17 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
+const bootcampRemoveSpy = vi.fn();
+
+// attaching 'remove' spy onto BOOTCAMPS_MOCK prototype (for DELETE tests)
+beforeAll(() => {
+  BOOTCAMPS_MOCK.forEach((bootcamp: BootcampType) => {
+    const bootcampProtototype = Object.getPrototypeOf(bootcamp);
+    bootcampProtototype.remove = bootcampRemoveSpy;
+  });
+});
+
 // MOCKS
-
-const BOOTCAMPS_MOCK_PATH = path.join(__dirname, "../../mock_data/bootcamps.json");
-const BOOTCAMPS_MOCK: BootcampType[] = JSON.parse(fs.readFileSync(BOOTCAMPS_MOCK_PATH, "utf-8"));
-
-const COURSES_MOCK_PATH = path.join(__dirname, "../../mock_data/courses.json");
-const COURSES_MOCK: CourseType[] = JSON.parse(fs.readFileSync(COURSES_MOCK_PATH, "utf-8"));
 
 vi.mock("../models/bootcampModel", () => ({
   default: {
@@ -54,14 +66,6 @@ vi.mock("../models/bootcampModel", () => ({
           const bootcamp = BOOTCAMPS_MOCK.find(bootcamp => (bootcamp._id as any) === bootcampId);
 
           bootcamp ? resolve(bootcamp) : resolve(null);
-        })
-    ),
-    findByIdAndDelete: vi.fn(
-      (bootcampId: string) =>
-        new Promise((resolve, _reject) => {
-          const bootcamp = BOOTCAMPS_MOCK.find(({ _id }) => (_id as any) === bootcampId);
-
-          bootcamp ? resolve(bootcamp) : resolve(undefined);
         })
     ),
   },
@@ -253,12 +257,12 @@ describe(`${BOOTCAMPS_URL}/:id`, () => {
   });
 
   describe("DELETE", () => {
-    it("invokes Bootcamp.findByIdAndDelete method with id param", async () => {
-      const inputId = "input-id";
+    it("invokes bootcamp.remove() method (ensures that cascade deletion takes place)", async () => {
+      const inputId = BOOTCAMPS_MOCK[0]._id;
 
       await request(app).delete(`${BOOTCAMPS_URL}/${inputId}`);
 
-      expect(Bootcamp.findByIdAndDelete).toBeCalledWith(inputId);
+      expect(bootcampRemoveSpy).toBeCalled();
     });
 
     test("when id-param has a bootcamp match it responds with 204 status code", async () => {

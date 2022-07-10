@@ -5,6 +5,7 @@ import slugify from "slugify";
 
 // PROJECT_MODULES
 import { geocoder, IntentionalError } from "../utils";
+import Course from "./courseModel";
 
 enum Careers {
   WEB_DEV = "Web Development",
@@ -228,6 +229,12 @@ bootcampSchema.pre("save", async function (this: BootcampType, next) {
   // don't persist address to the database because after parsing it, it's redundant
   this.address = undefined;
 
+  next();
+});
+
+// cascade delete courses when bootcamp is deleted
+bootcampSchema.pre("remove", async function (this: BootcampType, next) {
+  await Course.deleteMany({ bootcamp: this._id });
   next();
 });
 

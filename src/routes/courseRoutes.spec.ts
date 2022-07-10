@@ -12,6 +12,14 @@ import app from "../app";
 
 // Testing individual end-points instead of controllers
 
+// MOCK DATA
+
+const COURSES_MOCK_PATH = path.join(__dirname, "../../mock_data/courses.json");
+const COURSES_MOCK: CourseType[] = JSON.parse(fs.readFileSync(COURSES_MOCK_PATH, "utf-8"));
+
+const BOOTCAMPS_MOCK_PATH = path.join(__dirname, "../../mock_data/bootcamps.json");
+const BOOTCAMPS_MOCK: BootcampType[] = JSON.parse(fs.readFileSync(BOOTCAMPS_MOCK_PATH, "utf-8"));
+
 // HOOKS
 
 afterEach(() => {
@@ -19,12 +27,6 @@ afterEach(() => {
 });
 
 // MOCKS
-
-const COURSES_MOCK_PATH = path.join(__dirname, "../../mock_data/courses.json");
-const COURSES_MOCK: CourseType[] = JSON.parse(fs.readFileSync(COURSES_MOCK_PATH, "utf-8"));
-
-const BOOTCAMPS_MOCK_PATH = path.join(__dirname, "../../mock_data/bootcamps.json");
-const BOOTCAMPS_MOCK: BootcampType[] = JSON.parse(fs.readFileSync(BOOTCAMPS_MOCK_PATH, "utf-8"));
 
 vi.mock("../models/courseModel", () => ({
   default: {

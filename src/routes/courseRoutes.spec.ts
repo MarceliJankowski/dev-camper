@@ -1,11 +1,11 @@
 // PACAKGES
 import path from "path";
 import fs from "fs";
-import { describe, vi, it, expect, afterEach } from "vitest";
+import { describe, vi, it, expect, afterEach, test } from "vitest";
 import request from "supertest";
 
 // PROJECT_MODULES
-import { CourseType } from "../models/courseModel";
+import Course, { CourseType } from "../models/courseModel";
 import { BootcampType } from "../models/bootcampModel";
 import { COURSES_URL } from "../constants";
 import app from "../app";
@@ -23,6 +23,8 @@ const BOOTCAMPS_MOCK: BootcampType[] = JSON.parse(fs.readFileSync(BOOTCAMPS_MOCK
 // HOOKS
 
 afterEach(() => {
+  process.env.NODE_ENV = "development";
+
   vi.clearAllMocks();
 });
 
@@ -31,6 +33,14 @@ afterEach(() => {
 vi.mock("../models/courseModel", () => ({
   default: {
     find: () => {},
+    findById: vi.fn(
+      (courseId: string) =>
+        new Promise((resolve, _reject) => {
+          const course = COURSES_MOCK.find(course => (course._id as any) === courseId);
+
+          course ? resolve(course) : resolve(null);
+        })
+    ),
   },
 }));
 
@@ -83,7 +93,7 @@ describe(COURSES_URL, () => {
       expect(courses).toBe(expectedCoursesValue);
     });
 
-    it("responds with expected headers && body", async () => {
+    it("fetches all courses / responds with expected headers && body", async () => {
       const expectedCourses = getCoursesPopulatedWithBootcamps();
       const expectedResBody = {
         status: "success",
@@ -93,6 +103,51 @@ describe(COURSES_URL, () => {
       };
 
       const { body } = await request(app).get(COURSES_URL).expect(200).expect("Content-Type", /json/);
+
+      expect(body).toEqual(expectedResBody);
+    });
+  });
+});
+
+describe(`${COURSES_URL}/:id`, () => {
+  describe("GET", () => {
+    it("invokes Course.findById() with id param as argument", async () => {
+      const inputId = "test-id";
+
+      await request(app).get(`${COURSES_URL}/${inputId}`);
+
+      expect(Course.findById).toBeCalledWith(inputId);
+    });
+
+    test("when id-param has a course match, it responds with expected headers && body", async () => {
+      const inputIdWithMatch = COURSES_MOCK[0]._id;
+      const expectedCourse = COURSES_MOCK.find(course => course._id === inputIdWithMatch);
+      const expectedResBody = {
+        status: "success",
+        message: `successfully fetched course with id: ${inputIdWithMatch}`,
+        course: expectedCourse,
+      };
+
+      const { body } = await request(app)
+        .get(`${COURSES_URL}/${inputIdWithMatch}`)
+        .expect(200)
+        .expect("Content-Type", /json/);
+
+      expect(body).toEqual(expectedResBody);
+    });
+
+    it("handles case when there's no course match for id-param (in production)", async () => {
+      const courseIdWithoutMatch = "1234567890";
+      const expectedResBody = {
+        status: "fail",
+        message: `course with id: ${courseIdWithoutMatch} does not exist`,
+      };
+
+      process.env.NODE_ENV = "production";
+      const { body } = await request(app)
+        .get(`${COURSES_URL}/${courseIdWithoutMatch}`)
+        .expect(404)
+        .expect("Content-Type", /json/);
 
       expect(body).toEqual(expectedResBody);
     });

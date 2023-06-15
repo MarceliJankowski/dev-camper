@@ -1,0 +1,17 @@
+version: "3.9"
+services:
+  backend:
+    stop_grace_period: 1m
+    build:
+      target: ${BACKEND_TARGET}
+      context: ./
+      dockerfile: Dockerfile
+    env_file:
+      - ./env/backend.env
+    environment:
+      - PORT=${BACKEND_PORT}
+    ports:
+      - ${BACKEND_PORT}:${BACKEND_PORT}
+    volumes:
+      - /usr/src/app/node_modules
+      - ./:/usr/src/app:ro

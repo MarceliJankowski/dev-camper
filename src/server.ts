@@ -8,9 +8,13 @@ process.on("uncaughtException", (err: unknown) => {
 
 // MODULES
 import app from "./app";
+import { getEnvVar } from "./utils";
 
-const server = app.listen(5000, () => {
-  console.log("Server is up and running");
+const PORT = getEnvVar("PORT");
+
+const server = app.listen(PORT, () => {
+  console.log("SERVER IS UP");
+  console.log("PORT: " + PORT);
 });
 
 // UNHANDLED PROMISE REJECTION

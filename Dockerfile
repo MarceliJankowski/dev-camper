@@ -1,3 +1,5 @@
+# WARNING: 'buildx' builder is required
+
 ##################################################
 #                      BASE                      #
 ##################################################
@@ -8,15 +10,24 @@ WORKDIR /usr/src/app
 
 EXPOSE $PORT
 
-ENV NODE_ENV=production
-
-RUN mkdir node_modules && chown -R node:node ./node_modules
+# 'node' user doesn't have permissions to alter file-system
+RUN mkdir node_modules && chown node:node ./node_modules
 
 USER node
 
-COPY --chown=node:node package.json package-lock.json ./
+COPY package.json package-lock.json ./
 
-RUN npm ci && npm cache clean --force
+##################################################
+#                      TEST                      #
+##################################################
+
+FROM base AS test
+
+RUN npm ci
+
+COPY . .
+
+RUN npm test
 
 ##################################################
 #                  DEVELOPMENT                   #
@@ -26,6 +37,11 @@ FROM base AS development
 
 ENV NODE_ENV=development
 
-RUN npm install
+# install 'curl' (used by docker-compose healthcheck)
+USER root
+RUN apt-get update -qq && apt-get install -qy curl
+USER node
+
+RUN npm ci
 
 CMD ["npm", "run", "dev"]

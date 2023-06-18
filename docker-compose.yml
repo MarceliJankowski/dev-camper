@@ -1,6 +1,7 @@
 version: "3.9"
 services:
   backend:
+    container_name: dev-camper-backend
     stop_grace_period: 1m
     build:
       target: ${BACKEND_TARGET}
@@ -15,3 +16,9 @@ services:
     volumes:
       - /usr/src/app/node_modules
       - ./:/usr/src/app:ro
+    healthcheck:
+      test: curl --fail http://localhost:${BACKEND_PORT}/health || exit 1
+      start_period: 5s
+      interval: 3s
+      timeout: 10s
+      retries: 3

@@ -1,0 +1,63 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+# CONSTANTS
+readonly SCRIPT_NAME=$(basename $0)
+
+# UTILITIES
+
+function log() {
+  local readonly MESSAGE="$1"
+
+  echo "$SCRIPT_NAME - $MESSAGE"
+
+  return 0
+}
+
+function throwErr() {
+  local readonly MESSAGE="$1"
+  local readonly EXIT_CODE="$2"
+
+  echo "$SCRIPT_NAME - $MESSAGE" 1>&2
+
+  exit $EXIT_CODE
+}
+
+# CODE
+
+log "Making sure that required docker dependencies are present on the system..."
+(docker --version && docker buildx && docker-compose --version) 1>/dev/null
+
+echo
+log "Running tests... (building 'test' image)"
+docker build --quiet --target test -t pre-commit-test ./ 1>/dev/null
+
+log "Tests successfully passed, cleaning up... (removing 'test' image)"
+docker rmi pre-commit-test 1>/dev/null
+
+echo
+log "Bringing down dev-camper services (in case they're already running)..."
+docker-compose down 1>/dev/null
+
+echo
+log "Starting up dev-camper services..."
+docker-compose up --build -d 1>/dev/null
+
+echo
+log "Making sure that 'backend' service is healthy..."
+readonly STARTUP_TIME=5
+readonly INTERVAL=3
+
+sleep "$STARTUP_TIME"
+
+for (( ATTEMPTS = 2; ATTEMPTS > 0; ATTEMPTS-- )); do
+  HEALTH_STATUS=$(docker inspect --format='{{ .State.Health.Status }}' dev-camper-backend)
+
+  [[ "$HEALTH_STATUS" == "healthy" ]] && break
+
+  sleep "$INTERVAL"
+done
+
+[[ "$HEALTH_STATUS" == "healthy" ]] && log "All good (:" && exit 0
+
+throwErr "[FAILURE] 'backend' service status: '${HEALTH_STATUS}'" 1

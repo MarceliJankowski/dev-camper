@@ -22,3 +22,24 @@ services:
       interval: 3s
       timeout: 10s
       retries: 3
+    depends_on:
+      database:
+        condition: service_healthy
+  database:
+    container_name: dev-camper-database
+    image: mongo:6.0.7
+    restart: unless-stopped
+    volumes:
+      - data:/data/db
+    env_file:
+      - ./env/mongo.env
+    ports:
+      - ${DATABASE_PORT}:27017
+    healthcheck:
+      test: mongosh --eval 'db.runCommand("ping").ok' --quiet
+      start_period: 5s
+      interval: 3s
+      timeout: 10s
+      retries: 3
+volumes:
+  data:

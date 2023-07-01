@@ -11,6 +11,7 @@ services:
       - ./env/backend.env
     environment:
       - PORT=${BACKEND_PORT}
+      - MONGO_PORT=${DATABASE_PORT}
     ports:
       - ${BACKEND_PORT}:${BACKEND_PORT}
     volumes:

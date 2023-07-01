@@ -1,4 +1,5 @@
-// UNCAUGHT EXCEPTION
+// REGISTERING LISTENERS/HANDLERS
+
 process.on("uncaughtException", (err: unknown) => {
   console.error("UNCAUGHT EXCEPTION -", new Date());
   console.error(err);
@@ -6,18 +7,6 @@ process.on("uncaughtException", (err: unknown) => {
   process.exit(1);
 });
 
-// MODULES
-import app from "./app";
-import { getEnvVar } from "./utils";
-
-const PORT = getEnvVar("PORT");
-
-const server = app.listen(PORT, () => {
-  console.log("SERVER IS UP");
-  console.log("PORT: " + PORT);
-});
-
-// UNHANDLED PROMISE REJECTION
 process.on("unhandledRejection", (value: unknown) => {
   console.error("UNHANDLED PROMISE REJECTION -", new Date());
   console.error(value);
@@ -28,7 +17,6 @@ process.on("unhandledRejection", (value: unknown) => {
   });
 });
 
-// handling 'INT' and 'TERM' signals
 process.on("SIGINT", () => gracefulShutdown("INT"));
 process.on("SIGTERM", () => gracefulShutdown("TERM"));
 
@@ -41,3 +29,36 @@ function gracefulShutdown(signal: string): void {
     process.exit(0);
   });
 }
+
+// PACKAGES
+import mongoose from "mongoose";
+
+// MODULES
+import app from "./app";
+import { NODE_ENV } from "./constants";
+import { getEnvVar } from "./utils";
+
+const PORT = getEnvVar("PORT");
+
+const server = app.listen(PORT, () => {
+  console.log("SERVER IS UP");
+  console.log("NODE_ENV: " + NODE_ENV);
+  console.log("PORT: " + PORT);
+});
+
+const MONGO_PORT = getEnvVar("MONGO_PORT");
+const MONGO_PASSWORD = getEnvVar("MONGO_PASSWORD");
+const MONGO_USERNAME = getEnvVar("MONGO_USERNAME");
+const MONGO_URL = getEnvVar("MONGO_URL")
+  .replace(/{PASSWORD}/, MONGO_PASSWORD)
+  .replace(/{USERNAME}/, MONGO_USERNAME)
+  .replace(/{PORT}/, MONGO_PORT);
+
+mongoose
+  .connect(MONGO_URL)
+  .then(() => console.log("SERVER SUCCESSFULLY CONNECTED WITH DATABASE"))
+  .catch(err => {
+    console.error("SERVER FAILED TO CONNECT WITH DATABASE -", new Date());
+    console.error(err);
+    process.exit(3);
+  });

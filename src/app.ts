@@ -3,9 +3,7 @@ import express from "express";
 import morgan from "morgan";
 
 // MODULES
-import { getEnvVar } from "./utils";
-
-const NODE_ENV = getEnvVar("NODE_ENV");
+import { NODE_ENV } from "./constants";
 
 const app = express();
 export default app;

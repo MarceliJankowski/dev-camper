@@ -2,7 +2,7 @@
 import { describe, it, expect } from "vitest";
 import request from "supertest";
 
-// PROJECT_MODULES
+// MODULES
 import app from "./app";
 
 describe("GET /health", () => {

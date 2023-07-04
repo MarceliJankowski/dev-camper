@@ -4,6 +4,7 @@ import morgan from "morgan";
 
 // MODULES
 import { NODE_ENV } from "./constants";
+import { globalErrorHandler } from "./middlewares";
 
 const app = express();
 export default app;
@@ -21,3 +22,6 @@ app.use(
 app.get("/health", (_, res) => {
   res.status(200).json({ status: "OK" });
 });
+
+// GLOBAL ERROR HANDLER
+app.use(globalErrorHandler);

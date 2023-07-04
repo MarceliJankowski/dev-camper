@@ -6,7 +6,7 @@ import { IntentionalError } from "./intentionalError";
 
 const inputMessage = "input message";
 
-it("instantiated holds expected properties", () => {
+it.concurrent("instantiated holds expected properties", () => {
   const inputStatusCode = 500;
   const expectedProperties = new Map();
   expectedProperties.set("message", inputMessage);
@@ -24,7 +24,7 @@ it("instantiated holds expected properties", () => {
   expect(testErr).toHaveProperty("stack");
 });
 
-it("correctly generates status property based on statusCode argument", () => {
+it.concurrent("correctly generates status property based on statusCode argument", () => {
   const [inputStatusCode1, inputStatusCode2] = [400, 500];
   const [expectedStatus1, expectedStatus2] = ["fail", "error"];
 
@@ -35,7 +35,7 @@ it("correctly generates status property based on statusCode argument", () => {
   expect(testErr2.status).toBe(expectedStatus2);
 });
 
-it("is an instance of Error Constructor", () => {
+it.concurrent("is an instance of 'Error()' constructor", () => {
   const inputStatusCode = 500;
 
   const testErr = new IntentionalError(inputMessage, inputStatusCode);
@@ -43,7 +43,7 @@ it("is an instance of Error Constructor", () => {
   expect(testErr).toBeInstanceOf(Error);
 });
 
-it(`raises exception when instantiated with invalid statusCode`, () => {
+it.concurrent(`raises exception when instantiated with invalid statusCode`, () => {
   const invalidStatusCode1 = 600;
   const invalidStatusCode2 = 399;
   const expectedErrMessage = /statusCode: '.*' is invalid/;

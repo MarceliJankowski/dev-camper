@@ -20,9 +20,9 @@ app.use(
   })
 );
 
-// HEALTH END-POINT
+// HEALTH ENDPOINT
 app.get("/health", (_, res) => {
-  res.status(200).json({ status: "OK" });
+  res.status(200).json({ status: "success", message: "healthy" });
 });
 
 // GLOBAL ERROR HANDLER

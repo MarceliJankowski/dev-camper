@@ -35,14 +35,13 @@ import mongoose from "mongoose";
 
 // MODULES
 import app from "./app";
-import { NODE_ENV } from "./constants";
 import { getEnvVar } from "./utils";
 
 const PORT = getEnvVar("PORT");
 
 const server = app.listen(PORT, () => {
   console.log("SERVER IS UP");
-  console.log("NODE_ENV: " + NODE_ENV);
+  console.log("NODE_ENV: " + getEnvVar("NODE_ENV"));
   console.log("PORT: " + PORT);
 });
 

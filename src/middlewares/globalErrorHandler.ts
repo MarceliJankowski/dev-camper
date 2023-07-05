@@ -2,8 +2,7 @@
 import { ErrorRequestHandler, Response } from "express";
 
 // MODULES
-import { IntentionalError } from "../utils";
-import { NODE_ENV } from "../constants";
+import { IntentionalError, getEnvVar } from "../utils";
 
 interface ExtendedError extends Error {
   statusCode: number;
@@ -27,6 +26,8 @@ export class SendError {
   }
 
   private sendErrorBasedOnNodeEnv() {
+    const NODE_ENV = getEnvVar("NODE_ENV");
+
     switch (NODE_ENV) {
       case "production": {
         this.sendErrorInProduction();

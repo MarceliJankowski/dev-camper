@@ -4,15 +4,11 @@ import { it, vi, expect, describe, afterEach } from "vitest";
 // MODULES
 import { IntentionalError } from "../utils";
 import { SendError } from "./globalErrorHandler";
-import * as constants from "../constants";
-
-vi.mock("../constants");
-const mockConstants = constants as { NODE_ENV: string };
 
 describe("new SendError()", () => {
   afterEach(() => {
     vi.clearAllMocks();
-    mockConstants.NODE_ENV = "";
+    vi.unstubAllEnvs();
   });
 
   const resStubJSON = vi.fn();
@@ -22,7 +18,7 @@ describe("new SendError()", () => {
   };
 
   it("development - responds with all available data, automatically infers 'status' and 'statusCode' when not present", () => {
-    mockConstants.NODE_ENV = "development";
+    vi.stubEnv("NODE_ENV", "development");
     const inputErr = new Error("test error message");
     const expectedStatusCode = 500;
     const expectedStatus = "error";
@@ -39,9 +35,9 @@ describe("new SendError()", () => {
   });
 
   it("raises exception when 'NODE_ENV' env variable is invalid", () => {
-    mockConstants.NODE_ENV = "invalid value";
+    vi.stubEnv("NODE_ENV", "invalid value");
     const inputErr = new IntentionalError("test error message", 404);
-    const expectedErr = new RegExp(`NODE_ENV: '${mockConstants.NODE_ENV}' is invalid`);
+    const expectedErr = new RegExp(`NODE_ENV: '${process.env.NODE_ENV}' is invalid`);
 
     const wrapperFn = () => new SendError(inputErr, resStub);
 
@@ -49,7 +45,7 @@ describe("new SendError()", () => {
   });
 
   it("production - responds with generic data template", () => {
-    mockConstants.NODE_ENV = "production";
+    vi.stubEnv("NODE_ENV", "production");
     const inputErr = new Error("test error message");
     const expectedStatusCode = 500;
     const expectedStatus = "error";
@@ -65,7 +61,7 @@ describe("new SendError()", () => {
   });
 
   it("production - responds with actual data when error is an instance of IntentionalError", () => {
-    mockConstants.NODE_ENV = "production";
+    vi.stubEnv("NODE_ENV", "production");
     const inputErrStatusCode = 400;
     const inputErr = new IntentionalError("test error message", inputErrStatusCode);
 

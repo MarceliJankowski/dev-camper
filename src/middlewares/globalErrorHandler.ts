@@ -6,7 +6,7 @@ import { IntentionalError, getEnvVar } from "../utils";
 
 interface ExtendedError extends Error {
   statusCode: number;
-  status: StatusType;
+  status: Status;
   isIntentional?: true;
 }
 

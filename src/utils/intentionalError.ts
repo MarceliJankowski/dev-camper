@@ -6,7 +6,7 @@ export class IntentionalError extends Error {
   public readonly isIntentional: true;
 
   /**@desc differentiates between internal server `"error"` (server's fault) and `"fail"` (client's fault). Derived from `statusCode`*/
-  public readonly status: StatusErrType;
+  public readonly status: StatusErr;
 
   constructor(public readonly message: string, public readonly statusCode: number) {
     if (statusCode < 400 || statusCode >= 600)

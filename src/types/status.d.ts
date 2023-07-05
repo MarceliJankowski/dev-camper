@@ -1,3 +1,3 @@
-type StatusErrType = "error" | "fail";
+type StatusErr = "error" | "fail";
 
-type StatusType = StatusErrType | "success";
+type Status = StatusErr | "success";

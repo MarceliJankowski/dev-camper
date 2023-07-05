@@ -25,5 +25,8 @@ app.get("/health", (_, res) => {
   res.status(200).json({ status: "success", message: "healthy" });
 });
 
+// INVALID ENDPOINTS
+app.all("*", (_req, res) => res.status(404).json({ status: "fail", message: "endpoint not found" }));
+
 // GLOBAL ERROR HANDLER
 app.use(globalErrorHandler);

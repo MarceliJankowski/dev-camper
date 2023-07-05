@@ -17,3 +17,24 @@ describe("GET /health", () => {
     expect(body).toEqual(expectedBody);
   });
 });
+
+describe.concurrent("invalid endpoint", () => {
+  const HTTP_METHODS = ["GET", "POST", "PUT", "PATCH", "DELETE"]; // selectively choosing the most popular ones, no point in overdoing it after all
+  const invalidEndpoint = `/invalid`;
+
+  HTTP_METHODS.forEach(httpVerb => {
+    it(`${httpVerb} ${invalidEndpoint} -> expected headers and body`, async () => {
+      const expectedBody = {
+        status: "fail",
+        message: "endpoint not found",
+      };
+
+      const { body } = await request(app)
+        [httpVerb.toLowerCase()](invalidEndpoint)
+        .expect(404)
+        .expect("Content-Type", /json/);
+
+      expect(body).toEqual(expectedBody);
+    });
+  });
+});

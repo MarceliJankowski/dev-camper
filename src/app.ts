@@ -5,6 +5,8 @@ import morgan from "morgan";
 // MODULES
 import { globalErrorHandler } from "./middlewares";
 import { getEnvVar } from "./utils";
+import { bootcampRouter } from "./routes";
+import { BOOTCAMPS_URL } from "./constants";
 
 const app = express();
 export default app;
@@ -19,6 +21,9 @@ app.use(
     skip: req => req.url === "/health",
   })
 );
+
+// ROUTERS
+app.use(BOOTCAMPS_URL, bootcampRouter);
 
 // HEALTH ENDPOINT
 app.get("/health", (_, res) => {

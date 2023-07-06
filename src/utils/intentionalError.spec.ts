@@ -35,7 +35,7 @@ it.concurrent("correctly generates status property based on statusCode argument"
   expect(testErr2.status).toBe(expectedStatus2);
 });
 
-it.concurrent("is an instance of 'Error()' constructor", () => {
+it.concurrent("is an instance of Error() constructor", () => {
   const inputStatusCode = 500;
 
   const testErr = new IntentionalError(inputMessage, inputStatusCode);

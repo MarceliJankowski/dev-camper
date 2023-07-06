@@ -106,7 +106,6 @@ const bootcampSchema = new mongoose.Schema<IBootcamp>(
       },
       coordinates: {
         type: [Number],
-        required: [true, "location.coordinates field is required"],
         index: "2dsphere",
       },
       formattedAddress: String,

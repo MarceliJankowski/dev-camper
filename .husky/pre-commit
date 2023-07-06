@@ -29,8 +29,11 @@ log "Making sure that required docker dependencies are present on the system..."
 (docker --version && docker buildx && docker-compose --version) 1>/dev/null
 
 echo
-log "Running tests... (building 'test' image)"
+log "Building 'test' image..."
 docker build --quiet --target test -t pre-commit-test ./ 1>/dev/null
+
+log "Running tests..."
+docker run --env-file='./env/backend.env' --rm --quiet pre-commit-test 1>/dev/null
 
 log "Tests successfully passed, cleaning up... (removing 'test' image)"
 docker rmi pre-commit-test 1>/dev/null

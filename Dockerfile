@@ -27,7 +27,7 @@ RUN npm ci
 
 COPY . .
 
-RUN npm test
+CMD ["npm", "test"]
 
 ##################################################
 #                  DEVELOPMENT                   #

@@ -16,6 +16,13 @@ const MOCK_BOOTCAMPS: IMockBootcamp[] = JSON.parse(fs.readFileSync(MOCK_BOOTCAMP
 vi.mock("../models/bootcampModel", () => ({
   default: {
     create: vi.fn((bootcamp: object) => Promise.resolve(bootcamp)),
+    findById: vi.fn(
+      (id: string) =>
+        new Promise((resolve, _reject) => {
+          const bootcamp = MOCK_BOOTCAMPS.find(bootcamp => bootcamp._id === id);
+          bootcamp ? resolve(bootcamp) : resolve(null);
+        })
+    ),
     findByIdAndUpdate: vi.fn(
       (id: string, bootcampUpdate: object, config: { new: boolean }) =>
         new Promise(resolve => {
@@ -62,6 +69,49 @@ describe(`POST ${BOOTCAMPS_URL}`, () => {
     await request(app).post(BOOTCAMPS_URL).send(inputReqBody);
 
     expect(Bootcamp.create).toBeCalledWith(inputReqBody);
+  });
+});
+
+describe(`GET ${BOOTCAMPS_URL}/:id`, () => {
+  it("invokes Bootcamp.findById() method with id argument", async () => {
+    const inputId = "input id";
+
+    await request(app).get(`${BOOTCAMPS_URL}/${inputId}`);
+
+    expect(Bootcamp.findById).toBeCalledWith(inputId);
+  });
+
+  it("responds with expected headers and body when there's a bootcamp id match", async () => {
+    const expectedBootcamp = MOCK_BOOTCAMPS[0];
+    const inputBootcampId = expectedBootcamp._id;
+    const expectedResBody = {
+      status: "success",
+      message: `successfully fetched bootcamp with id: '${inputBootcampId}'`,
+      bootcamp: expectedBootcamp,
+    };
+
+    const { body } = await request(app)
+      .get(`${BOOTCAMPS_URL}/${inputBootcampId}`)
+      .expect(200)
+      .expect("Content-Type", /json/);
+
+    expect(body).toEqual(expectedResBody);
+  });
+
+  it("production - responds with expected headers and body when there's no bootcamp id match", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    const inputBootcampId = "no match id";
+    const expectedResBody = {
+      status: "fail",
+      message: `bootcamp with id: '${inputBootcampId}' doesn't exist`,
+    };
+
+    const { body } = await request(app)
+      .get(`${BOOTCAMPS_URL}/${inputBootcampId}`)
+      .expect(404)
+      .expect("Content-Type", /json/);
+
+    expect(body).toEqual(expectedResBody);
   });
 });
 

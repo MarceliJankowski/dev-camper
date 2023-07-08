@@ -14,6 +14,18 @@ export const createBootcamp = handlePromiseRej(async (req, res) => {
   });
 });
 
+/**@route GET `$API_V1/bootcamps/:id`
+@access public*/
+export const getBootcamp = handlePromiseRej(async ({ params: { id } }, res) => {
+  const bootcamp = await Bootcamp.findById(id);
+
+  if (!bootcamp) throw new IntentionalError(`bootcamp with id: '${id}' doesn't exist`, 404);
+
+  res
+    .status(200)
+    .json({ status: "success", message: `successfully fetched bootcamp with id: '${id}'`, bootcamp });
+});
+
 /**@route PATCH `$API_V1/bootcamps/:id`
 @access private*/
 export const updateBootcamp = handlePromiseRej(async ({ params: { id }, body }, res) => {

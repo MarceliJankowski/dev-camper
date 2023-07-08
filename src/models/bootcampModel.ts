@@ -30,7 +30,8 @@ type OptionalBootcampFields = Partial<{
   address: string; // ephemeral field
 }>;
 
-interface IBootcamp extends OptionalBootcampFields {
+export interface IBootcamp extends OptionalBootcampFields {
+  _id: mongoose.Schema.Types.ObjectId;
   name: string;
   slug: string;
   description: string;
@@ -168,6 +169,7 @@ const bootcampSchema = new mongoose.Schema<IBootcamp>(
     writeConcern: { w: "majority", j: true, wtimeout: 5000 },
     toJSON: { virtuals: true },
     toObject: { virtuals: true },
+    id: false,
   }
 );
 

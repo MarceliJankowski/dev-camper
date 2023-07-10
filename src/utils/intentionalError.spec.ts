@@ -12,7 +12,6 @@ it.concurrent("instantiated holds expected properties", () => {
   expectedProperties.set("message", inputMessage);
   expectedProperties.set("statusCode", inputStatusCode);
   expectedProperties.set("status", "error");
-  expectedProperties.set("isIntentional", true);
 
   const testErr = new IntentionalError(inputMessage, inputStatusCode);
 

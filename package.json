@@ -9,7 +9,8 @@
     "test:v": "vitest --run --reporter verbose",
     "test:w": "vitest --watch",
     "test:wv": "vitest --watch --reporter verbose",
-    "prepare": "husky install"
+    "prepare": "husky install",
+    "seed": "ts-node ./seeder.ts"
   },
   "repository": {
     "type": "git",

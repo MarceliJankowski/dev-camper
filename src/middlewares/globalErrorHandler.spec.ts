@@ -127,8 +127,6 @@ describe("new SendError()", () => {
       message: inputErrors.join(", "),
     };
 
-    console.log(inputValidationError instanceof mongoose.Error.ValidatorError);
-
     new SendError(inputValidationError, resStub);
 
     expect(resStubStatus).toBeCalledWith(expectedStatusCode);

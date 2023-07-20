@@ -9,12 +9,16 @@ import app from "../app";
 import Bootcamp, { IBootcamp } from "../models/bootcampModel";
 import { BOOTCAMPS_URL } from "../constants";
 
-type IMockBootcamp = Omit<IBootcamp, "_id"> & { _id: string };
+// CONSTANTS
+type MockBootcamp = Omit<IBootcamp, "_id"> & { _id: string };
 const MOCK_BOOTCAMPS_PATH = path.join(__dirname, "../../mock_data/bootcamps.json");
-const MOCK_BOOTCAMPS: IMockBootcamp[] = JSON.parse(fs.readFileSync(MOCK_BOOTCAMPS_PATH, "utf-8"));
+const MOCK_BOOTCAMPS: MockBootcamp[] = JSON.parse(fs.readFileSync(MOCK_BOOTCAMPS_PATH, "utf-8"));
+
+// MOCKS
 
 vi.mock("../models/bootcampModel", () => ({
   default: {
+    find: vi.fn(() => Promise.resolve(MOCK_BOOTCAMPS)),
     create: vi.fn((bootcamp: object) => Promise.resolve(bootcamp)),
     findById: vi.fn(
       (id: string) =>
@@ -41,10 +45,30 @@ vi.mock("../models/bootcampModel", () => ({
   },
 }));
 
+const featureQueryExecuteSpy = vi.fn(() => Promise.resolve<unknown>(MOCK_BOOTCAMPS));
+const featureQueryAddAllFeaturesSpy = vi.fn();
+
+vi.mock("../utils/featureQuery", () => ({
+  FeatureQuery: class {
+    execute() {
+      return featureQueryExecuteSpy();
+    }
+
+    addAllFeatures() {
+      featureQueryAddAllFeaturesSpy.mockImplementation(() => this);
+      return featureQueryAddAllFeaturesSpy();
+    }
+  },
+}));
+
+// HOOKS
+
 afterEach(() => {
   vi.clearAllMocks();
   vi.unstubAllEnvs();
 });
+
+// TEST SUITES
 
 describe(`POST ${BOOTCAMPS_URL}`, () => {
   const inputReqBody = MOCK_BOOTCAMPS[0];
@@ -69,6 +93,39 @@ describe(`POST ${BOOTCAMPS_URL}`, () => {
     await request(app).post(BOOTCAMPS_URL).send(inputReqBody);
 
     expect(Bootcamp.create).toBeCalledWith(inputReqBody);
+  });
+});
+
+describe(`GET ${BOOTCAMPS_URL}`, () => {
+  it("responds with expected headers and body", async () => {
+    const expectedBootcamps = MOCK_BOOTCAMPS;
+    const expectedResBody = {
+      status: "success",
+      message: "successfully fetched bootcamps",
+      count: expectedBootcamps.length,
+      bootcamps: expectedBootcamps,
+    };
+
+    const { body } = await request(app).get(BOOTCAMPS_URL).expect(200).expect("Content-Type", /json/);
+
+    expect(body).toEqual(expectedResBody);
+  });
+
+  it("responds with bootcamps comming from FeatureQuery.execute()", async () => {
+    const executionPromiseValue = "test value";
+    featureQueryExecuteSpy.mockImplementationOnce(() => Promise.resolve(executionPromiseValue));
+
+    const {
+      body: { bootcamps },
+    } = await request(app).get(BOOTCAMPS_URL);
+
+    expect(bootcamps).toBe(executionPromiseValue);
+  });
+
+  it("invokes FeatureQuery.addAllFeatures() (ensuring it's applying all query features)", async () => {
+    await request(app).get(BOOTCAMPS_URL);
+
+    expect(featureQueryAddAllFeaturesSpy).toBeCalled();
   });
 });
 

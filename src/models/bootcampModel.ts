@@ -1,6 +1,7 @@
 // PACKAGES
 import mongoose from "mongoose";
 import validator from "validator";
+import slugify from "slugify";
 
 enum Career {
   WEB_DEV = "Web Development",
@@ -172,6 +173,14 @@ const bootcampSchema = new mongoose.Schema<IBootcamp>(
     id: false,
   }
 );
+
+// MIDDLEWARES
+
+// generate slug from bootcamp name
+bootcampSchema.pre("save", function (next) {
+  this.slug = slugify(this.name, { lower: true });
+  next();
+});
 
 const Bootcamp = mongoose.model<IBootcamp>("Bootcamp", bootcampSchema);
 export default Bootcamp;

@@ -3,6 +3,9 @@ import mongoose from "mongoose";
 import validator from "validator";
 import slugify from "slugify";
 
+// MODULES
+import { geocoder, IntentionalError } from "../utils";
+
 enum Career {
   WEB_DEV = "Web Development",
   MOBILE_DEV = "Mobile Development",
@@ -18,7 +21,6 @@ interface ILocation {
   formattedAddress: string;
   street: string;
   city: string;
-  state: string;
   zipcode: string;
   country: string;
 }
@@ -113,7 +115,6 @@ const bootcampSchema = new mongoose.Schema<IBootcamp>(
       formattedAddress: String,
       street: String,
       city: String,
-      state: String,
       zipcode: String,
       country: String,
     },
@@ -179,6 +180,48 @@ const bootcampSchema = new mongoose.Schema<IBootcamp>(
 // generate slug from bootcamp name
 bootcampSchema.pre("save", function (next) {
   this.slug = slugify(this.name, { lower: true });
+  next();
+});
+
+// parse address into location data
+bootcampSchema.pre("save", async function (next) {
+  const geocodeResults = await geocoder.geocode(this.address!); // mongoose will automatically propagate rejected promise to globalErrorHandler
+
+  if (geocodeResults.length === 0)
+    return next(new IntentionalError(`address: '${this.address}' not found`, 400));
+
+  const { longitude, latitude, streetName, formattedAddress, countryCode, city, zipcode } = geocodeResults[0];
+
+  if (
+    longitude === undefined ||
+    latitude === undefined ||
+    !formattedAddress ||
+    !countryCode ||
+    !zipcode ||
+    !streetName ||
+    !city
+  )
+    return next(
+      new IntentionalError(
+        `server wasn't able to extract all required location data from address: '${this.address}'. Please try supplying more specific address`,
+        400
+      )
+    );
+
+  // save location data into database
+  this.location = {
+    type: "Point",
+    coordinates: [longitude, latitude],
+    formattedAddress,
+    street: streetName,
+    country: countryCode,
+    zipcode,
+    city,
+  };
+
+  // don't persist address into database as it becomes redundant after extracting location
+  this.address = undefined;
+
   next();
 });
 

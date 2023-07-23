@@ -1,13 +1,14 @@
 // PACKAGES
 import path from "path";
 import fs from "fs";
-import { it, expect, describe, vi, afterEach } from "vitest";
+import { it, expect, describe, vi, afterEach, Mocked } from "vitest";
 import request from "supertest";
 import app from "../app";
 
 // MODULES
 import Bootcamp, { IBootcamp } from "../models/bootcampModel";
-import { BOOTCAMPS_URL } from "../constants";
+import { BOOTCAMPS_URL, EARTH_RADIUS_KM } from "../constants";
+import { geocoder } from "../utils";
 
 // CONSTANTS
 type MockBootcamp = Omit<IBootcamp, "_id"> & { _id: string };
@@ -67,6 +68,15 @@ vi.mock("../utils/featureQuery", () => ({
     }
   },
 }));
+
+vi.mock("../utils/geocoder", () => ({
+  geocoder: {
+    geocode: vi.fn(() => Promise.resolve([{ longitude: 10, latitude: 10 }])),
+  },
+}));
+
+const mockedBootcamp = Bootcamp as Mocked<typeof Bootcamp>;
+const mockedGeocoder = geocoder as Mocked<typeof geocoder>;
 
 // HOOKS
 
@@ -256,6 +266,91 @@ describe(`DELETE ${BOOTCAMPS_URL}`, () => {
     const { body } = await request(app)
       .delete(`${BOOTCAMPS_URL}/${inputBootcampId}`)
       .expect(404)
+      .expect("Content-Type", /json/);
+
+    expect(body).toEqual(expectedResBody);
+  });
+});
+
+describe(`GET ${BOOTCAMPS_URL}/radius/:zipcode/:distance`, () => {
+  it("invokes Bootcamp.find() method with expected arguments", async () => {
+    const inputZipcode = "02118";
+    const inputDistance = 10;
+    const radius = inputDistance / EARTH_RADIUS_KM;
+    const longitude = 5;
+    const latitude = 5;
+    const expectedFindArg = {
+      location: { $geoWithin: { $centerSphere: [[longitude, latitude], radius] } },
+    };
+
+    mockedGeocoder.geocode.mockImplementationOnce(() => Promise.resolve([{ longitude, latitude }]));
+
+    await request(app).get(`${BOOTCAMPS_URL}/radius/${inputZipcode}/${inputDistance}`);
+
+    expect(Bootcamp.find).toBeCalledWith(expectedFindArg);
+  });
+
+  it("invokes geocoder.geocode() method with zipcode param", async () => {
+    const inputZipcode = "02118";
+    const inputDistance = 10;
+
+    await request(app).get(`${BOOTCAMPS_URL}/radius/${inputZipcode}/${inputDistance}`);
+
+    expect(geocoder.geocode).toBeCalledWith(inputZipcode);
+  });
+
+  it("responds with expected headers and body", async () => {
+    const inputZipcode = "02118";
+    const inputDistance = 10;
+    const bootcampsWithinRadius = [MOCK_BOOTCAMPS[0], MOCK_BOOTCAMPS[1], MOCK_BOOTCAMPS[2]]; // arbitrarily chosen list
+    const expectedResBody = {
+      status: "success",
+      count: bootcampsWithinRadius.length,
+      bootcamps: bootcampsWithinRadius,
+    };
+
+    mockedBootcamp.find.mockImplementationOnce(() => Promise.resolve<any>(bootcampsWithinRadius));
+
+    const { body } = await request(app)
+      .get(`${BOOTCAMPS_URL}/radius/${inputZipcode}/${inputDistance}`)
+      .expect(200)
+      .expect("Content-Type", /json/);
+
+    expect(body).toEqual(expectedResBody);
+  });
+
+  it("production - responds with expected headers and body when distance param is invalid", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    const inputZipcode = "02118";
+    const inputDistance = "invalid distance";
+    const expectedResBody = {
+      status: "fail",
+      message: `invalid distance: '${inputDistance}'`,
+    };
+
+    const { body } = await request(app)
+      .get(`${BOOTCAMPS_URL}/radius/${inputZipcode}/${inputDistance}`)
+      .expect(400)
+      .expect("Content-Type", /json/);
+
+    expect(body).toEqual(expectedResBody);
+  });
+
+  it("production - responds with expected headers and body when geocoder fails to locate zipcode param", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    const inputZipcode = "non existant zipcode";
+    const inputDistance = 10;
+    const expectedResBody = {
+      status: "fail",
+      message: `zipcode: '${inputZipcode}' not found`,
+    };
+
+    // simulate geocoder not finding zipcode location
+    mockedGeocoder.geocode.mockImplementationOnce(() => Promise.resolve([]));
+
+    const { body } = await request(app)
+      .get(`${BOOTCAMPS_URL}/radius/${inputZipcode}/${inputDistance}`)
+      .expect(400)
       .expect("Content-Type", /json/);
 
     expect(body).toEqual(expectedResBody);

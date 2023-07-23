@@ -1,6 +1,7 @@
 // MODULES
 import Bootcamp from "../models/bootcampModel";
-import { IntentionalError, handlePromiseRej, FeatureQuery } from "../utils";
+import { IntentionalError, handlePromiseRej, FeatureQuery, geocoder } from "../utils";
+import { EARTH_RADIUS_KM } from "../constants";
 
 /**@route POST `$API_V1/bootcamps`
 @access private*/
@@ -66,4 +67,27 @@ export const deleteBootcamp = handlePromiseRej(async ({ params: { id } }, res) =
   if (!deletedBootcamp) throw new IntentionalError(`bootcamp with id: '${id}' doesn't exist`, 404);
 
   res.status(204).send();
+});
+
+/**@route GET `$API_V1/bootcamps/radius/:zipcode/:distance`
+@access public*/
+export const getBootcampsInRadius = handlePromiseRej(async ({ params: { zipcode, distance } }, res) => {
+  const distanceNum = Number(distance);
+  if (Number.isNaN(distanceNum)) throw new IntentionalError(`invalid distance: '${distance}'`, 400);
+
+  const geocodeResults = await geocoder.geocode(zipcode);
+  if (geocodeResults.length === 0) throw new IntentionalError(`zipcode: '${zipcode}' not found`, 400);
+
+  const { longitude, latitude } = geocodeResults[0];
+  const radius = Number(distance) / EARTH_RADIUS_KM;
+
+  const bootcamps = await Bootcamp.find({
+    location: { $geoWithin: { $centerSphere: [[longitude, latitude], radius] } },
+  });
+
+  res.status(200).json({
+    status: "success",
+    count: bootcamps.length,
+    bootcamps,
+  });
 });

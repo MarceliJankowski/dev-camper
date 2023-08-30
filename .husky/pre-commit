@@ -29,13 +29,13 @@ log "Making sure that required docker dependencies are present on the system..."
 (docker --version && docker buildx && docker-compose --version) 1>/dev/null
 
 echo
-log "Building 'test' image..."
+log "Building test image..."
 docker build --quiet --target test -t pre-commit-test ./ 1>/dev/null
 
 log "Running tests..."
 docker run --env-file='./env/backend.env' --rm --quiet pre-commit-test 1>/dev/null
 
-log "Tests successfully passed, cleaning up... (removing 'test' image)"
+log "Tests successfully passed, cleaning up... (removing test image)"
 docker rmi pre-commit-test 1>/dev/null
 
 echo
@@ -47,7 +47,7 @@ log "Starting up dev-camper services..."
 docker-compose up --build -d 1>/dev/null
 
 echo
-log "Making sure that 'backend' service is healthy..."
+log "Making sure that backend service is healthy..."
 readonly STARTUP_TIME=5
 readonly INTERVAL=3
 
@@ -63,4 +63,4 @@ done
 
 [[ "$HEALTH_STATUS" == "healthy" ]] && log "All good (:" && exit 0
 
-throwErr "[FAILURE] 'backend' service status: '${HEALTH_STATUS}'" 1
+throwErr "[FAILURE] backend service status: '${HEALTH_STATUS}'" 1

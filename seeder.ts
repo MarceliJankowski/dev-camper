@@ -4,6 +4,7 @@ import mongoose from "mongoose";
 
 // MODULES
 import Bootcamp from "./src/models/bootcampModel";
+import Course from "./src/models/courseModel";
 import { getEnvVar } from "./src/utils";
 
 // CONSTANTS
@@ -18,18 +19,24 @@ type Options = Partial<{
   verboseMode: boolean;
 }>;
 
-// CODE
-const options = parseArgs();
+// UTILITIES
 
-(async function () {
-  if (options.printManual ?? Object.entries(options).length === 0) printManual();
-  if (options.deleteData || options.importData) await connectWithDB();
-  if (options.deleteData) await deleteData();
-  if (options.importData) await importData();
+function log(value: unknown) {
+  console.log(`${SCRIPT_NAME} - ${value}`);
+}
 
-  log("successfully executed (:");
-  process.exit(-1);
-})();
+function logIfVerbose(value: unknown) {
+  if (options.verboseMode === true) log(`[VERBOSE] - ${value}`);
+}
+
+function logErr(err: unknown) {
+  console.error(SCRIPT_NAME + " - [ERROR] - " + err);
+}
+
+function logErrAndExit(err: unknown, exitCode: number): never {
+  logErr(err);
+  process.exit(exitCode);
+}
 
 // FUNCTIONS
 
@@ -38,7 +45,7 @@ function parseArgs(): Options {
   const options: Options = {};
 
   args.forEach(arg => {
-    if (!arg.startsWith("-")) logErrAndExit(`${SCRIPT_NAME} - user supplied invalid argument: '${arg}'`, 1);
+    if (!arg.startsWith("-")) logErrAndExit(`user supplied invalid argument: '${arg}'`, 1);
 
     const flagSegment = arg.slice(1); // turn '-rwx' into 'rwx' (one flagSegment can contain multiple flags)
     const flags = flagSegment.split(""); // split 'rwx' into ['r', 'w', 'x']
@@ -66,7 +73,7 @@ function parseArgs(): Options {
         }
 
         default:
-          logErrAndExit(`${SCRIPT_NAME} - user supplied invalid option: '${flag}'`, 1);
+          logErrAndExit(`user supplied invalid option: '${flag}'`, 1);
       }
     }
   });
@@ -75,6 +82,8 @@ function parseArgs(): Options {
 }
 
 async function connectWithDB() {
+  logIfVerbose("retrieving mongo environmental variables...");
+
   const MONGO_PORT = getEnvVar("MONGO_PORT");
   const MONGO_PASSWORD = getEnvVar("MONGO_PASSWORD");
   const MONGO_USERNAME = getEnvVar("MONGO_USERNAME");
@@ -83,22 +92,48 @@ async function connectWithDB() {
     .replace(/{USERNAME}/, MONGO_USERNAME)
     .replace(/{PORT}/, MONGO_PORT);
 
-  await mongoose.connect(MONGO_URL).catch(err => logErrAndExit(err, 2));
+  logIfVerbose("connecting to database...");
 
-  logIfVerbose("successfully connected with database");
+  await mongoose.connect(MONGO_URL).catch(err => logErrAndExit(err, 2));
+}
+
+async function disconnectFromDB() {
+  logIfVerbose("disconnecting from database...");
+
+  await mongoose.disconnect().catch(err => logErrAndExit(err, 5));
 }
 
 async function deleteData() {
-  await Bootcamp.deleteMany().catch(err => logErrAndExit(err, 3));
+  logIfVerbose("deleting documents...");
 
-  logIfVerbose("successfully deleted all documents");
+  try {
+    await Bootcamp.deleteMany();
+    await Course.deleteMany();
+
+    log("successfully deleted data");
+  } catch (err) {
+    logErr("deleting documents failed");
+    logErrAndExit(err, 3);
+  }
 }
 
 async function importData() {
-  const bootcamps = JSON.parse(fs.readFileSync(`${__dirname}/${MOCK_DATA_PATH}/bootcamps.json`, "utf-8"));
-  await Bootcamp.create(bootcamps).catch(err => logErrAndExit(err, 4));
+  logIfVerbose("importing data...");
 
-  logIfVerbose("successfully imported data");
+  try {
+    const courses = JSON.parse(fs.readFileSync(`${__dirname}/${MOCK_DATA_PATH}/courses.json`, "utf-8"));
+    const bootcamps = JSON.parse(fs.readFileSync(`${__dirname}/${MOCK_DATA_PATH}/bootcamps.json`, "utf-8"));
+
+    await Course.create(courses);
+
+    // avoid geocode middleware request limit (free provider imposes one) by creating one bootcamp at a time (there's only a few of them so throughput won't be a problem)
+    for (const bootcamp of bootcamps) await Bootcamp.create(bootcamp).catch(err => logErrAndExit(err, 3));
+
+    log("successfully imported data");
+  } catch (err) {
+    logErr("importing data failed");
+    logErrAndExit(err, 4);
+  }
 }
 
 function printManual() {
@@ -107,46 +142,54 @@ NAME
       ${SCRIPT_NAME} - seeds database with mock_data
 
 SYNOPSIS
-      ${SCRIPT_NAME} [OPTION]...
+      ${SCRIPT_NAME} [-h] [-v] [-d] [-i]
 
 DESCRIPTION
-      ${SCRIPT_NAME} is a simple script meant for seeding dev-camper database with contents of '${MOCK_DATA_PATH}' directory
+      Simple script meant for seeding dev-camper database with contents of '${MOCK_DATA_PATH}' directory
 
 OPTIONS
+      -h
+          Get help, print out the manual and exit
+
+      -v
+          Turn on verbose mode (increases output)
+
       -d
-          Delete every document from 'bootcamps' collection
+          Delete every document from seedable collections
 
       -i
-          Import data / seed 'bootcamp' collection with mock_data
+          Import data / seed collections with mock_data
 
 EXIT CODES
 
       0  ${SCRIPT_NAME} successfully run, without raising any exceptions
 
-      1  User supplied invalid option
+      1  User supplied invalid flag/argument
 
       2  ${SCRIPT_NAME} failed to connect with database
 
       3  Document deletion failed
 
       4  Document creation failed
+
+      5  ${SCRIPT_NAME} failed to disconnect from database
 `.trimStart();
 
   console.log(manual);
   process.exit(0);
 }
 
-// UTILITIES
+// MAIN EXECUTION BLOCK
 
-function log(value: unknown) {
-  console.log(`${SCRIPT_NAME} - ${value}`);
-}
+const options = parseArgs();
 
-function logIfVerbose(value: unknown) {
-  if (options.verboseMode === true) log(value);
-}
+(async function () {
+  if (options.printManual ?? Object.entries(options).length === 0) printManual();
+  if (options.deleteData || options.importData) await connectWithDB();
+  if (options.deleteData) await deleteData();
+  if (options.importData) await importData();
+  if (mongoose.connection.readyState === 1) await disconnectFromDB();
 
-function logErrAndExit(err: unknown, exitCode: number): never {
-  console.error(err);
-  process.exit(exitCode);
-}
+  log("successfully executed :)");
+  process.exit(0);
+})();

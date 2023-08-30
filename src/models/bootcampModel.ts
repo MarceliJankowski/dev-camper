@@ -175,6 +175,15 @@ const bootcampSchema = new mongoose.Schema<IBootcamp>(
   }
 );
 
+// VIRTUALS
+
+// used to populate bootcamps with corresponding courses
+bootcampSchema.virtual("courses", {
+  ref: "Course",
+  localField: "_id",
+  foreignField: "bootcamp",
+});
+
 // MIDDLEWARES
 
 // generate slug from bootcamp name
